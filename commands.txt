@@ -1,0 +1,6 @@
+# To resume
+python unet_plusplus_pytorch_lighthning_v2.py fit --config=config_2.yaml --ckpt_path=/work/vajira/DL/roman_diffusion_model/divergent-nets-pytorch-lightning/output/checkpoints/new/sample-polyp-epoch=03-valid_dataset_iou=0.85.ckpt
+
+
+# To predict
+python unet_plusplus_pytorch_lighthning_v2.py predict --config=config_2.yaml --ckpt_path=/work/vajira/DL/roman_diffusion_model/divergent-nets-pytorch-lightning/output/checkpoints/new/sample-polyp-epoch=03-valid_dataset_iou=0.85.ckpt

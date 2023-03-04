@@ -1,0 +1,14 @@
+data:
+    train:
+        - img_dir: "/work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/train/images"
+          mask_dir: "/work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/train/masks"
+          num_samples: -1 # to use all data
+          
+        - img_dir: "/work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/val/images"
+          mask_dir: "/work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/val/masks"
+          num_samples: -1
+          
+    validation:
+        - img_dir: "/work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/test/images"
+          mask_dir: "/work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/test/masks"
+          num_samples: 10
