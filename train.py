@@ -52,7 +52,7 @@ from pytorch_lightning.loggers import WandbLogger
 #==========================================
 # Tensorboard
 #==========================================
-
+conf = OmegaConf.from_cli()
 
 
 #==========================================
@@ -64,8 +64,18 @@ from pytorch_lightning.loggers import WandbLogger
 # Pytorch lightning training
 class PolypModel(pl.LightningModule):
 
-    def __init__(self, arch="UnetPlusPlus", encoder_name= "resnet34", in_channels=3, out_classes=2, lr=0.0001, test_print_batch_id=0, test_print_num=5, **kwargs):
+    def __init__(self, 
+                 arch="UnetPlusPlus", 
+                 encoder_name= "resnet34", 
+                 in_channels=3, 
+                 out_classes=1, 
+                 lr=0.0001, 
+                 test_print_batch_id=0, 
+                 test_print_num=5, 
+                 **kwargs):
         super().__init__()
+        
+        
         
         # "UnetPlusPlus", "resnet34", in_channels=3, out_classes=2
         self.arch = arch
@@ -75,6 +85,7 @@ class PolypModel(pl.LightningModule):
         self.test_print_batch_id = test_print_batch_id
         self.test_print_num = test_print_num
         self.lr = lr
+        
         
 
         self.model = smp.create_model(
@@ -350,172 +361,32 @@ def run_train(conf):
     #])
 
     train_model(train_loader, val_loader, model, checkpoint_callback)
-#====================================
-# Re-train process
-#====================================
-def run_retrain(opt):
 
-    checkpoint_dict = torch.load(os.path.join(CHECKPOINT_DIR, opt.best_checkpoint_name))
-
-    opt.start_epoch =  checkpoint_dict["epoch"]
-    model = checkpoint_dict["model"]
-
-    print("Model epoch:", checkpoint_dict["epoch"])
-    print("Model retrain started from epoch:", opt.start_epoch)
-
-    preprocessing_fn = smp.encoders.get_preprocessing_fn(opt.encoder, opt.encoder_weights)
-
-    train_loader, val_loader = prepare_data(opt, preprocessing_fn)
-
-    loss = smp.utils.losses.DiceLoss()
-
-    metrics = [
-        smp.utils.metrics.IoU(threshold=0.5),
-    ]
-
-    optimizer = torch.optim.Adam([ 
-        dict(params=model.parameters(), lr=opt.lr),
-    ])
-
-    train_model(train_loader, val_loader, model, loss, metrics, optimizer, opt)
-
-#=====================================
-# Check model
-#====================================
-def check_model_graph():
-    raise NotImplementedError
-
-
-#===================================
-# Inference from pre-trained models
-#===================================
-
-def do_test(opt):
-
-
-    checkpoint_dict = torch.load(os.path.join(CHECKPOINT_DIR, opt.best_checkpoint_name))
-
-    test_epoch =  checkpoint_dict["epoch"]
-    best_model = checkpoint_dict["model"]
-
-    print("Model best epoch:", test_epoch)
-
-    preprocessing_fn = smp.encoders.get_preprocessing_fn(opt.encoder, opt.encoder_weights)
-    test_dataset = prepare_test_data(opt, preprocessing_fn=None)
-    test_dataset_vis = prepare_test_data(opt, preprocessing_fn=None)
-    
-    
-    for i in range(opt.num_test_samples):
-        image, mask = test_dataset[i]
-        image_vis, _ = test_dataset_vis[i]
-
-        #print(image)
-
-        mask_tensor = torch.from_numpy(mask).to(opt.device).unsqueeze(0)
-
-        image_tensor = torch.from_numpy(image).to(opt.device).unsqueeze(0)
-        pr_mask = best_model.predict(image_tensor)
-
-        pr_mask = pr_mask.squeeze().cpu().numpy().round()
-
-        fig = visualize(
-            input_image_new=np.transpose(image_vis, (1,2,0)).astype(int),
-            GT_mask_0=mask[0, :,:],
-            Pred_mask_0 = pr_mask[0,:,:],
-            GT_mask_1= mask[1,:,:],
-            Pred_mask_1 = pr_mask[1, :,:]
-        )
-
-        fig.savefig(f"./test_202_{i}.png")
-        #writer.add_figure(f"Test_sample/sample-{i}", fig, global_step=test_epoch)
-        writer.log({"test_epoch": fig})
-
-
-
-
-
-def check_test_score(opt):
 
     
-
-    checkpoint_dict = torch.load(os.path.join(CHECKPOINT_DIR, opt.best_checkpoint_name))
-
-    test_best_epoch =  checkpoint_dict["epoch"]
-    best_model = checkpoint_dict["model"]
-
-    print("Model best epoch:", test_best_epoch)
-    
-    
-
-    preprocessing_fn = smp.encoders.get_preprocessing_fn(opt.encoder, opt.encoder_weights)
-    test_dataset = prepare_test_data(opt, preprocessing_fn=preprocessing_fn)
-    
-    test_dataloader = DataLoader(test_dataset, num_workers=48)
-
-    loss = smp.utils.losses.DiceLoss()
-    # Testing with two class layers
-    metrics = [
-        #smp.utils.metrics.IoU(threshold=0.5),
-        smp.utils.metrics.IoU(threshold=0.5, ignore_channels=None),
-    ]
-
-    test_epoch = smp.utils.train.ValidEpoch(
-        model=best_model,
-        loss=loss,
-        metrics=metrics,
-        device=DEVICE,
-    )
-
-    logs = test_epoch.run(test_dataloader)
-    print("logs=", str(logs))
-    writer.add_text(f"{opt.py_file}-test-score", str(logs), global_step=test_best_epoch)
-
-    # Testing with only class layer 1 (polyps)
-    loss = smp.utils.losses.DiceLoss(ignore_channels=[0])
-    metrics = [
-        #smp.utils.metrics.IoU(threshold=0.5),
-        smp.utils.metrics.IoU(threshold=0.5, ignore_channels=[0]),
-    ]
-
-    test_epoch = smp.utils.train.ValidEpoch(
-        model=best_model,
-        loss=loss,
-        metrics=metrics,
-        device=DEVICE,
-    )
-
-    logs = test_epoch.run(test_dataloader)
-    print("logs=", str(logs))
-    writer.add_text(f"{opt.py_file}-test-score-ignore-channel-0", str(logs), global_step=test_best_epoch)
-
-
-
-    # Testing with only class layer 0 (BG)
-
-    loss = smp.utils.losses.DiceLoss(ignore_channels=[1])
-    metrics = [
-        #smp.utils.metrics.IoU(threshold=0.5),
-        smp.utils.metrics.IoU(threshold=0.5, ignore_channels=[1]),
-    ]
-
-    test_epoch = smp.utils.train.ValidEpoch(
-        model=best_model,
-        loss=loss,
-        metrics=metrics,
-        device=DEVICE,
-    )
-
-    logs = test_epoch.run(test_dataloader)
-    print("logs=", str(logs))
-    writer.add_text(f"{opt.py_file}-test-score-ignore-channel-1", str(logs), global_step=test_best_epoch)
+class MyLightningCLI(LightningCLI):
+    def add_arguments_to_parser(self, parser):
+        parser.add_argument("--wandb_name", default="unet_plus_plus_1")
+        parser.add_argument("--wandb_entity", default="simulamet_mlc")
+        parser.add_argument("--wandb_project", default="diffusion_polyp")
+        parser.add_argument("--output_dir", default="output/")
+        
+        
+    def instantiate_classes(self):
+        print(self.config.fit.wandb_entity)
+        
+        # Call to the logger before initiate other clases, because Trainer class init logger if we didn´t do it
+        logger = WandbLogger(entity=self.config.fit.wandb_entity, project=self.config.fit.wandb_project,
+                                 name=self.config.fit.wandb_name)
+        super().instantiate_classes() # call to super class instatiate_classes()
+      
+        
 
 # Implementing a CLI
 def cli_main():
-    wandb.finish()
-    # Initialize Wandb
-    logger = WandbLogger(entity="simulamet_mlc", project="diffusion_polyp")
-    # model = PolypModel("UnetPlusPlus", "resnet34", in_channels=3, out_classes=2)
-    cli = LightningCLI(PolypModel, PolypDataModule, 
+  
+    
+    cli = MyLightningCLI(PolypModel, PolypDataModule, 
                        save_config_kwargs={"config_filename": "test_config.yaml", 'overwrite':True}
                        )
     
@@ -523,8 +394,16 @@ def cli_main():
 
 if __name__ == "__main__":
 
-    cli_main()
-    wandb.finish()
+    
+    # Setup Wandb using input yaml file
+    #conf = OmegaConf.from_cli() # get input arguments
+    #conf_yaml = OmegaConf.load(conf["--config"]) # get input yaml passed in command line
+    
+    # Setup wandb logger using given entity , project and name (change these as you want)
+    #logger = WandbLogger(entity=conf_yaml.wandb_entity, project=conf_yaml.wandb_project,
+    #                             name=conf_yaml.wandb_name)
+    cli_main() # Pytorch lightning command line interface 
+    wandb.finish() # Finish Wandb
 
    
 
