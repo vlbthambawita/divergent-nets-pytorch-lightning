@@ -214,21 +214,30 @@ def prepare_test_data(opt, preprocessing_fn):
 
 class PolypDataModule(pl.LightningDataModule):
     
-    def __init__(self, conf="../conf.yaml", 
-                 encoder = "se_resnext50_32x4d", 
-                 encoder_weight = "imagenet", bs=8, num_workers=2 ):
+    def __init__(self,  encoder = "se_resnext50_32x4d", 
+                 encoder_weight = "imagenet", bs=8, num_workers=2, 
+                 data = {
+                     "train":[{"img_dir":"", "mask_dir": "", "num_samples": ""},],
+                     "validation":[{"img_dir":"", "mask_dir": "", "num_samples": ""},]
+                 }
+                ):
+        
         super().__init__()
-        self.conf = OmegaConf.load("conf.yaml")
+        self.conf = OmegaConf.create(data) # create an OmegaConf from input data dictionary
         self.encoder = encoder
         self.encoder_weight = encoder_weight
         self.preprocessing_fn = smp.encoders.get_preprocessing_fn(self.encoder, self.encoder_weight)
         self.bs = bs
         self.num_workers = num_workers
         
+        print(self.conf)
+        
+        
     def setup(self, stage: str):
         # Train data
         datasets = []
-        for d in self.conf.data.train:
+        print(self.conf.train)
+        for d in self.conf.train:
             data_sub = Dataset( d.img_dir, d.mask_dir, 
                                augmentation=get_training_augmentation(), 
                                preprocessing=get_preprocessing(self.preprocessing_fn))
@@ -240,7 +249,8 @@ class PolypDataModule(pl.LightningDataModule):
 
         # Valiation data
         datasets = []
-        for d in self.conf.data.validation:
+        print(self.conf.validation)
+        for d in self.conf.validation:
             data_sub = Dataset(d.img_dir,d.mask_dir,
                                augmentation=get_training_augmentation(), 
                                preprocessing=get_preprocessing(self.preprocessing_fn))

@@ -111,12 +111,23 @@ model:
   test_print_num: 5
   encoder_weights: imagenet
 data:
-  conf: ../conf.yaml
   encoder: se_resnext50_32x4d
   encoder_weight: imagenet
   bs: 8
   num_workers: 2
-wandb_name: unet_plus_plus_test
+  data:
+    train:
+    - img_dir: /work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/train/images
+      mask_dir: /work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/train/masks
+      num_samples: -1
+    - img_dir: /work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/val/images
+      mask_dir: /work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/val/masks
+      num_samples: 50
+    validation:
+    - img_dir: /work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/test/images
+      mask_dir: /work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/test/masks
+      num_samples: -1
+wandb_name: unet_plus_plus_1
 wandb_entity: simulamet_mlc
 wandb_project: diffusion_polyp
 output_dir: output/
