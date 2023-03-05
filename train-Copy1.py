@@ -30,13 +30,13 @@ from torch.autograd import Variable
 
 import segmentation_models_pytorch as smp
 import pytorch_lightning as pl
-#from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.cli import LightningCLI
 
 #from pytorch_lightning.demos.boring_classes import DemoModel, BoringDataModule
-import pandas as pd
 
-#from data.dataset import Dataset
+
+from data.dataset import Dataset
 from data.prepare_data import PolypDataModule
 #from data.prepare_data import prepare_data_from_multiple_dirs as prepare_data
 #from data import PolypsDatasetWithGridEncoding
@@ -48,6 +48,16 @@ import segmentation_models_pytorch as smp
 import wandb
 from pytorch_lightning.loggers import WandbLogger
 
+
+#==========================================
+# Tensorboard
+#==========================================
+conf = OmegaConf.from_cli()
+
+
+#==========================================
+# Prepare Data
+#==========================================
 
 
 
@@ -62,8 +72,6 @@ class PolypModel(pl.LightningModule):
                  lr=0.0001, 
                  test_print_batch_id=0, 
                  test_print_num=5, 
-                 output_dir="",
-                 wandb_name="",
                  **kwargs):
         super().__init__()
         
@@ -77,16 +85,8 @@ class PolypModel(pl.LightningModule):
         self.test_print_batch_id = test_print_batch_id
         self.test_print_num = test_print_num
         self.lr = lr
-        self.wandb_name = "test"
-        self.output_dir = output_dir
-        self.wandb_name = wandb_name
         
         
-        
-        print(self.output_dir)
-        
-        #exit(0)
-        os.makedirs(self.output_dir, exist_ok=True)
 
         self.model = smp.create_model(
             self.arch, encoder_name=self.encoder_name, in_channels=self.in_channels, classes=self.out_classes, **kwargs)
@@ -181,7 +181,7 @@ class PolypModel(pl.LightningModule):
             f"{stage}_dataset_iou": dataset_iou,
         }
         
-        if stage == "valid":
+        if stage == "test":
             print(metrics)
         
         self.log_dict(metrics, prog_bar=True)
@@ -210,7 +210,7 @@ class PolypModel(pl.LightningModule):
         pred_mask = (prob_mask > 0.5).float()
         
         loss = self.loss_fn(mask_p, mask)
-        #print(mask_p.shape)
+        print(mask_p.shape)
         tp, fp, fn, tn = smp.metrics.get_stats(pred_mask.long(), mask.long(), mode="binary")
         
         return {"image_origin": image_origin, 
@@ -237,48 +237,16 @@ class PolypModel(pl.LightningModule):
         tn = torch.cat([x["tn"] for x in outputs])
         
         per_image_iou = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro-imagewise")
+        
         dataset_iou = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro")
-        
-        per_image_f1 = smp.metrics.f1_score(tp, fp, fn, tn, reduction="micro-imagewise")
-        dataset_f1 = smp.metrics.f1_score(tp, fp, fn, tn, reduction="micro")
-        
-        per_image_accuray = smp.metrics.accuracy(tp, fp, fn, tn, reduction="micro-imagewise")
-        dataset_accuracy = smp.metrics.accuracy(tp, fp, fn, tn, reduction="micro")
-        
-        per_image_precision = smp.metrics.precision(tp, fp, fn, tn, reduction="micro-imagewise")
-        dataset_precision = smp.metrics.precision(tp, fp, fn, tn, reduction="micro")
-        
-        metrics = {
-            "per_image_iou": per_image_iou,
-            "dataset_iou": dataset_iou,
-            "per_image_f1": per_image_f1,
-            "dataset_f1": dataset_f1,
-            "per_image_accuray": per_image_accuray,
-            "dataset_accuracy": dataset_accuracy,
-            "per_image_precision": per_image_precision,
-            "dataset_precision": dataset_precision 
-            
-        }
-        
-        self.log_dict(metrics, prog_bar=True)
-        
-        with open(f"{self.output_dir}/metrics.txt", "w") as f:
-            #f.write(f"per_image_iou={per_image_iou}\n")
-            #f.write(f"dataset_iou={dataset_iou}\n")
-            for key, value in metrics.items():
-                #print(item.key)
-                f.write(f"{key}\t={value}")
-                f.write("\n")
 
-        #print("test config=", self.ckpt_path)
+        
         
         for i in range(self.test_print_num):
             img = outputs[0]["image_origin"][i].cpu().numpy()
             mask = outputs[0]["pred_mask"][i][0,:, :].cpu().numpy()
-            plt.imsave(f"{self.output_dir}/image_{i}.png",img) 
-            plt.imsave(f"{self.output_dir}/mask_pred_{i}.png", mask) 
-            
-        
+            plt.imsave(f"image_{i}.png",img) 
+            plt.imsave(f"mask_pred_{i}.png", mask) 
             
         # logger.log_image(key=f"samples_{i}", images=[img, mask])
         #plt.imsave("test_pred_mask_1.png",outputs[0]["image_origin"][0][1,:, :].cpu().numpy())
@@ -301,6 +269,98 @@ class PolypModel(pl.LightningModule):
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.lr)
 
+    
+#================================================
+# Train the model
+#================================================
+def train_model(train_loader, valid_loader, model, checkpoint_callback):
+    
+
+       # create epoch runners 
+    # it is a simple loop of iterating over dataloader`s samples
+    trainer = pl.Trainer(
+        gpus=1, 
+        max_epochs=5,callbacks=[checkpoint_callback])
+
+
+    trainer.fit(
+    model, 
+    train_dataloaders=train_loader, 
+    val_dataloaders=valid_loader,
+    )
+            
+    
+
+
+    
+# update here
+    
+
+#==============================================
+# Heatmap generator from tensor
+#==============================================
+def generate_heatmapts(img_tensor):
+    print(img_tensor.shape)
+    fig_list = []
+    for n in range(img_tensor.shape[0]):
+        img = img_tensor[n]
+        img = img.squeeze(dim=0)
+        img_np = img.detach().cpu().numpy()
+        #img_np = np.transforms(img_np, (1,2,0))
+        
+        plt.imshow(img_np, cmap="hot")
+        fig = plt.gcf()
+        fig_list.append(fig)
+        # plt.clf()
+        plt.close()
+
+    return fig_list
+
+
+
+#===============================================
+# Prepare models
+#===============================================
+def prepare_model(opt):
+    # model = UNet(n_channels=4, n_classes=1) # 4 = 3 channels + 1 grid encode
+
+    # create segmentation model with pretrained encoder
+ 
+    model = PolypModel("UnetPlusPlus", "resnet34", in_channels=3, out_classes=2)
+
+    return model
+
+#====================================
+# Run training process
+#====================================
+def run_train(conf):
+    model = prepare_model(conf)
+
+    preprocessing_fn = smp.encoders.get_preprocessing_fn(conf.encoder, conf.encoder_weights)
+    
+
+    train_loader, val_loader = prepare_data(conf, preprocessing_fn=None)
+    
+    # saves top-K checkpoints based on "val_loss" metric
+    checkpoint_callback = ModelCheckpoint(
+        save_top_k=2,
+        monitor="valid_dataset_iou",
+        mode="max",
+        dirpath="output/checkpoints/new/",
+        filename="sample-polyp-{epoch:02d}-{valid_dataset_iou:.2f}",
+    )
+
+    #loss = smp.losses.DiceLoss(smp.losses.BINARY_MODE, from_logits=True)
+
+    #metrics = [
+    #    smp.metrics.IoU(threshold=0.5, ignore_channels=[0]),
+    #]
+
+   # optimizer = torch.optim.Adam([ 
+    #    dict(params=model.parameters(), lr=opt.lr),
+    #])
+
+    train_model(train_loader, val_loader, model, checkpoint_callback)
 
 
     
@@ -309,25 +369,15 @@ class MyLightningCLI(LightningCLI):
         parser.add_argument("--wandb_name", default="unet_plus_plus_1")
         parser.add_argument("--wandb_entity", default="simulamet_mlc")
         parser.add_argument("--wandb_project", default="diffusion_polyp")
-        parser.add_argument("--output_dir", default="output/new_3")
-        #parser.set_defaults({"model.output_dir": "output/test/"})
-        
-        #parser.set_defaults({"model.config"})
-        #parser.link_arguments("trainer.callbacks[" + str(0) +"]", "model.output_dir")
-        parser.link_arguments("output_dir", "model.output_dir")
-        parser.link_arguments("wandb_name", "model.wandb_name")
-        
-    #def add_default_arguments_to_parser(self, parser):
-        
+        parser.add_argument("--output_dir", default="output/")
         
         
     def instantiate_classes(self):
-        #print(self.config[self.config.subcommand])
+        print(self.config.fit.wandb_entity)
         
         # Call to the logger before initiate other clases, because Trainer class init logger if we didn´t do it
-        logger = WandbLogger(entity=self.config[self.config.subcommand].wandb_entity, 
-                             project=self.config[self.config.subcommand].wandb_project,
-                             name=self.config[self.config.subcommand].wandb_name)
+        logger = WandbLogger(entity=self.config.fit.wandb_entity, project=self.config.fit.wandb_project,
+                                 name=self.config.fit.wandb_name)
         super().instantiate_classes() # call to super class instatiate_classes()
       
         

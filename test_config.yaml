@@ -39,7 +39,7 @@ trainer:
   callbacks:
   - class_path: pytorch_lightning.callbacks.ModelCheckpoint
     init_args:
-      dirpath: output/checkpoints/new_2/
+      dirpath: output/new_4
       filename: sample-polyp-{epoch:02d}-{valid_dataset_iou:.2f}
       monitor: valid_dataset_iou
       verbose: false
@@ -122,13 +122,14 @@ data:
       num_samples: -1
     - img_dir: /work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/val/images
       mask_dir: /work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/val/masks
-      num_samples: 50
+      num_samples: -1
     validation:
     - img_dir: /work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/test/images
       mask_dir: /work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/test/masks
-      num_samples: -1
-wandb_name: unet_plus_plus_1
+      num_samples: 10
+wandb_name: unet_plus_plus_test_v1
 wandb_entity: simulamet_mlc
 wandb_project: diffusion_polyp
-output_dir: output/
-ckpt_path: null
+output_dir: output/new_4
+ckpt_path: /work/vajira/DL/roman_diffusion_model/divergent-nets-pytorch-lightning/output/new_4/sample-polyp-epoch=02-valid_dataset_iou=0.81.ckpt
+verbose: true

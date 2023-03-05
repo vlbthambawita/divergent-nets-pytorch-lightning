@@ -9,6 +9,7 @@ from data.dataset import Dataset
 import pytorch_lightning as pl
 from pprint import pprint
 
+'''
 def df_from_csv_file_array(csv_file_arrya):
 
     df =pd.DataFrame(columns=["image", "path"])
@@ -20,7 +21,7 @@ def df_from_csv_file_array(csv_file_arrya):
 
     return df
 
-
+'''
 
 def get_training_augmentation():
     train_transform = [
@@ -143,7 +144,7 @@ def prepare_data(opt, preprocessing_fn):
 
 
 
-
+'''
 def prepare_data_from_multiple_dirs(conf, preprocessing_fn):
     
     datasets = []
@@ -208,7 +209,7 @@ def prepare_test_data(opt, preprocessing_fn):
 
     return test_dataset
 
-
+'''
 
 # Pytorch lightning DataModule
 
@@ -230,13 +231,13 @@ class PolypDataModule(pl.LightningDataModule):
         self.bs = bs
         self.num_workers = num_workers
         
-        print(self.conf)
+        #print(self.conf)
         
         
     def setup(self, stage: str):
         # Train data
         datasets = []
-        print(self.conf.train)
+        #print(self.conf.train)
         for d in self.conf.train:
             data_sub = Dataset( d.img_dir, d.mask_dir, 
                                augmentation=get_training_augmentation(), 
@@ -249,7 +250,7 @@ class PolypDataModule(pl.LightningDataModule):
 
         # Valiation data
         datasets = []
-        print(self.conf.validation)
+        #print(self.conf.validation)
         for d in self.conf.validation:
             data_sub = Dataset(d.img_dir,d.mask_dir,
                                augmentation=get_training_augmentation(), 
