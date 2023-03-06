@@ -181,8 +181,8 @@ class PolypModel(pl.LightningModule):
             f"{stage}_dataset_iou": dataset_iou,
         }
         
-        if stage == "valid":
-            print(metrics)
+        #if stage == "valid":
+        #    print(metrics)
         
         self.log_dict(metrics, prog_bar=True)
 
@@ -224,11 +224,6 @@ class PolypModel(pl.LightningModule):
                 "tn": tn,}  
 
     def test_epoch_end(self, outputs):
-        # test images from the first batch of test data
-        #print(outputs[0]["image_origin"][0].shape)
-        #print(outputs[0]["pred_mask"][0].shape)
-        #print(outputs[0]["image_origin"][0].max())
-        #print(outputs[0]["image_origin"][0].min())
         
         # aggregate step metics
         tp = torch.cat([x["tp"] for x in outputs])
@@ -250,23 +245,20 @@ class PolypModel(pl.LightningModule):
         
         metrics = {
             "per_image_iou": per_image_iou,
-            "dataset_iou": dataset_iou,
             "per_image_f1": per_image_f1,
-            "dataset_f1": dataset_f1,
             "per_image_accuray": per_image_accuray,
-            "dataset_accuracy": dataset_accuracy,
             "per_image_precision": per_image_precision,
+            "dataset_iou": dataset_iou,
+            "dataset_f1": dataset_f1,
+            "dataset_accuracy": dataset_accuracy,
             "dataset_precision": dataset_precision 
-            
         }
         
         self.log_dict(metrics, prog_bar=True)
         
         with open(f"{self.output_dir}/metrics.txt", "w") as f:
-            #f.write(f"per_image_iou={per_image_iou}\n")
-            #f.write(f"dataset_iou={dataset_iou}\n")
+          
             for key, value in metrics.items():
-                #print(item.key)
                 f.write(f"{key}\t={value}")
                 f.write("\n")
 

@@ -37,14 +37,13 @@ trainer:
       settings: null
   enable_checkpointing: true
   callbacks:
-  - class_path: pytorch_lightning.callbacks.ModelCheckpoint
-    init_args:
-      dirpath: output/new_4
-      filename: sample-polyp-{epoch:02d}-{valid_dataset_iou:.2f}
+  - init_args:
+      dirpath: output/FPN_config_R100F000.yaml
+      filename: best
       monitor: valid_dataset_iou
       verbose: false
       save_last: null
-      save_top_k: 2
+      save_top_k: 1
       save_weights_only: false
       mode: max
       auto_insert_metric_name: true
@@ -52,13 +51,14 @@ trainer:
       train_time_interval: null
       every_n_epochs: null
       save_on_train_epoch_end: null
+    class_path: pytorch_lightning.callbacks.ModelCheckpoint
   default_root_dir: null
   gradient_clip_val: null
   gradient_clip_algorithm: null
   num_nodes: 1
   num_processes: null
   devices:
-  - 1
+  - 0
   gpus: null
   auto_select_gpus: null
   tpu_cores: null
@@ -69,7 +69,7 @@ trainer:
   check_val_every_n_epoch: 1
   fast_dev_run: false
   accumulate_grad_batches: null
-  max_epochs: 5
+  max_epochs: 50
   min_epochs: null
   max_steps: -1
   min_steps: null
@@ -102,7 +102,7 @@ trainer:
   multiple_trainloader_mode: max_size_cycle
   inference_mode: true
 model:
-  arch: UnetPlusPlus
+  arch: FPN
   encoder_name: resnet34
   in_channels: 3
   out_classes: 1
@@ -114,22 +114,24 @@ data:
   encoder: se_resnext50_32x4d
   encoder_weight: imagenet
   bs: 8
-  num_workers: 2
+  num_workers: 4
   data:
     train:
     - img_dir: /work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/train/images
       mask_dir: /work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/train/masks
+      num_samples: 100
+    - img_dir: /work/vajira/DL/roman_diffusion_model/Models/results_135/samples
+      mask_dir: /work/vajira/DL/roman_diffusion_model/Models/200
+      num_samples: 0
+    validation:
+    - img_dir: /work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/test/images
+      mask_dir: /work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/test/masks
       num_samples: -1
     - img_dir: /work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/val/images
       mask_dir: /work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/val/masks
       num_samples: -1
-    validation:
-    - img_dir: /work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/test/images
-      mask_dir: /work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/test/masks
-      num_samples: 10
-wandb_name: unet_plus_plus_test_v1
+wandb_name: FPN_config_R100F000.yaml
 wandb_entity: simulamet_mlc
 wandb_project: diffusion_polyp
-output_dir: output/new_4
-ckpt_path: /work/vajira/DL/roman_diffusion_model/divergent-nets-pytorch-lightning/output/new_4/sample-polyp-epoch=02-valid_dataset_iou=0.81.ckpt
-verbose: true
+output_dir: output/05_config
+ckpt_path: null

@@ -6,10 +6,10 @@ trainer:
   callbacks: 
       - class_path: pytorch_lightning.callbacks.ModelCheckpoint
         init_args:
-            save_top_k: 2
+            save_top_k: 4
             monitor: "valid_dataset_iou"
             mode: "max"
-            dirpath: "output/new_4"
+            dirpath: "output/01_config"
             filename: "sample-polyp-{epoch:02d}-{valid_dataset_iou:.2f}"
   default_root_dir: null
   gradient_clip_val: null
@@ -27,7 +27,7 @@ trainer:
   check_val_every_n_epoch: 1
   fast_dev_run: false
   accumulate_grad_batches: null
-  max_epochs: 5
+  max_epochs: 50
   min_epochs: null
   max_steps: -1
   min_steps: null
@@ -64,7 +64,7 @@ model:
   encoder_name: resnet34
   in_channels: 3
   out_classes: 1
-  lr: 0.0001
+  lr: 0.00001
   test_print_batch_id: 0
   test_print_num: 5
   encoder_weights: imagenet
@@ -84,9 +84,9 @@ data:
     validation:
     - img_dir: "/work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/test/images"
       mask_dir: "/work/vajira/DL/roman_diffusion_model/conditional-polyp-diffusion/Kvasir-SEG/test/masks"
-      num_samples: 10
-wandb_name: unet_plus_plus_test_v1
+      num_samples: -1
+wandb_name: 01_config
 wandb_entity: simulamet_mlc
 wandb_project: diffusion_polyp
-output_dir: output/new_4
+output_dir: output/01_config
 ckpt_path: null

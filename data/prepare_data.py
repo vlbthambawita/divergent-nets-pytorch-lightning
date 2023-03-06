@@ -242,7 +242,7 @@ class PolypDataModule(pl.LightningDataModule):
             data_sub = Dataset( d.img_dir, d.mask_dir, 
                                augmentation=get_training_augmentation(), 
                                preprocessing=get_preprocessing(self.preprocessing_fn))
-            if d.num_samples > 0:
+            if d.num_samples >= 0:
                 data_sub = Subset(data_sub, [i for i in range(d.num_samples)])
             datasets.append(data_sub)
         self.train_dataset = ConcatDataset(datasets)
@@ -255,7 +255,7 @@ class PolypDataModule(pl.LightningDataModule):
             data_sub = Dataset(d.img_dir,d.mask_dir,
                                augmentation=get_training_augmentation(), 
                                preprocessing=get_preprocessing(self.preprocessing_fn))
-            if d.num_samples > 0:
+            if d.num_samples >= 0:
                 data_sub = Subset(data_sub, [i for i in range(d.num_samples)])
             datasets.append(data_sub)
 
