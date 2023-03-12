@@ -1,7 +1,7 @@
 # !/bin/bash
 
 FNOS="RALLFALL"
-model="FPN"
+model="DeepLabV3plus"
 devices="[1]"
 
 for FNO in $FNOS

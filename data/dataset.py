@@ -64,8 +64,9 @@ class Dataset(BaseDataset):
         img_name = img_path.split("/")[-1] #.split(".")[0]
         mask_path = os.path.join(self.mask_dir, img_name)
         img = Image.open(img_path)
+        image_t = np.array(img) # to print, but without preprocessing
         image = np.array(img)
-        image_origin = np.array(img.resize((256, 256)))
+        
         mask = np.array(Image.open(mask_path))[:,:, 0] # take only one channel from 3-channels mask image
         
         #print(mask.min())
@@ -78,18 +79,24 @@ class Dataset(BaseDataset):
         # extract certain classes from mask (e.g. cars)
         #masks = [(mask == v) for v in self.class_values]
        # mask = np.stack(masks, axis=-1).astype('float')
+
         
         # apply augmentations
         if self.augmentation:
             sample = self.augmentation(image=image, mask=mask)
+            ori_img_smpl = self.augmentation(image=image_t, mask=mask) # here mask is dummy. not required. but need to pass to work
             image, mask = sample['image'], sample['mask']
+            image_t = ori_img_smpl["image"]
+            
 
         # apply preprocessing
         if self.preprocessing:
             sample = self.preprocessing(image=image, mask=mask)
             image, mask = sample['image'], sample['mask']
             
-        return {"image":image, "mask":mask, "image_origin": image_origin}
+  
+            
+        return {"image":image, "mask":mask, "image_origin": image_t}
         
     def __len__(self):
         return len(self.images)
@@ -102,6 +109,7 @@ if __name__=="__main__":
     sample = test_dataset[500]
     print(sample["image"].shape)
     print(sample["mask"].shape)
+    print(sample["image_origin"].shape)
     print(sample["mask"].max())
     print(sample["mask"].min())
     plt.imsave("mask.jpeg", sample["mask"][:,:,0])

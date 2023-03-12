@@ -253,7 +253,7 @@ class PolypDataModule(pl.LightningDataModule):
         #print(self.conf.validation)
         for d in self.conf.validation:
             data_sub = Dataset(d.img_dir,d.mask_dir,
-                               augmentation=get_training_augmentation(), 
+                               augmentation=get_validation_augmentation(), 
                                preprocessing=get_preprocessing(self.preprocessing_fn))
             if d.num_samples >= 0:
                 data_sub = Subset(data_sub, [i for i in range(d.num_samples)])

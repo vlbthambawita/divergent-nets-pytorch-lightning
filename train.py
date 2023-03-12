@@ -32,6 +32,7 @@ import segmentation_models_pytorch as smp
 import pytorch_lightning as pl
 #from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.cli import LightningCLI
+from einops import rearrange
 
 #from pytorch_lightning.demos.boring_classes import DemoModel, BoringDataModule
 import pandas as pd
@@ -200,6 +201,9 @@ class PolypModel(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         image = batch["image"]
+        #print(image.shape)
+        image_before = image
+        #print(image_before.shape)
         image_origin = batch["image_origin"]
         mask = batch["mask"]
         
@@ -214,6 +218,7 @@ class PolypModel(pl.LightningModule):
         tp, fp, fn, tn = smp.metrics.get_stats(pred_mask.long(), mask.long(), mode="binary")
         
         return {"image_origin": image_origin, 
+                "image_before":image_before,
                 "mask": mask, 
                 "prob_mask": prob_mask, 
                 "pred_mask": pred_mask,
@@ -266,9 +271,15 @@ class PolypModel(pl.LightningModule):
         
         for i in range(self.test_print_num):
             img = outputs[0]["image_origin"][i].cpu().numpy()
+            #img_before = rearrange(outputs[0]["image_before"][i], 'c h w -> h w c').cpu().numpy()
+            #print("img before max=", img_before.max())
+            #print("img before min=", img_before.min())
             mask = outputs[0]["pred_mask"][i][0,:, :].cpu().numpy()
+            mask_gt = outputs[0]["mask"][i][0,:, :].cpu().numpy()
             plt.imsave(f"{self.output_dir}/image_{i}.png",img) 
             plt.imsave(f"{self.output_dir}/mask_pred_{i}.png", mask) 
+            plt.imsave(f"{self.output_dir}/mask_gt_{i}.png", mask_gt) 
+            #plt.imsave(f"{self.output_dir}/image_before_{i}.png", img_before) 
             
         
             
