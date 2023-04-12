@@ -1,8 +1,9 @@
 # !/bin/bash
 
-FNOS="RALLF000EPOCH100"
+FNOS="RALLF000_finetune_from_FALL_v2"
 model="UnetPlusPlus"
-devices="[1]"
+devices="[0]"
+
 
 for FNO in $FNOS
 do

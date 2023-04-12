@@ -260,6 +260,9 @@ class PolypModel(pl.LightningModule):
         }
         
         self.log_dict(metrics, prog_bar=True)
+
+        # Write dictionaly values to csv.
+        
         
         with open(f"{self.output_dir}/metrics.txt", "w") as f:
           
