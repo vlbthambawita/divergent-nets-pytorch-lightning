@@ -33,6 +33,7 @@ import pytorch_lightning as pl
 #from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.cli import LightningCLI
 from einops import rearrange
+from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor, EarlyStopping
 
 #from pytorch_lightning.demos.boring_classes import DemoModel, BoringDataModule
 import pandas as pd
@@ -61,15 +62,17 @@ class PolypModel(pl.LightningModule):
                  in_channels=3, 
                  out_classes=1, 
                  lr=0.0001, 
+                 lr_scheduler_hparams = {"mode": "max", "patience": 2, "verbose":True},
                  test_print_batch_id=0, 
                  test_print_num=5, 
+                 early_stopping_patience=5,
                  output_dir="",
                  wandb_name="",
                  **kwargs):
         super().__init__()
         
         
-        
+        self.save_hyperparameters() # save all the arguments in the checkpoint
         # "UnetPlusPlus", "resnet34", in_channels=3, out_classes=2
         self.arch = arch
         self.encoder_name = encoder_name
@@ -304,8 +307,41 @@ class PolypModel(pl.LightningModule):
         return {"image": image, "mask": mask, "prob_mask": prob_mask, "pred_mask": pred_mask}
     
 
+    #def configure_optimizers(self):
+    #    return torch.optim.Adam(self.parameters(), lr=self.lr)
+
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.lr)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+        lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, **self.hparams.lr_scheduler_hparams)
+        lr_scheduler_config = {
+                            # REQUIRED: The scheduler instance
+                            "scheduler": lr_scheduler,
+                            # The unit of the scheduler's step size, could also be 'step'.
+                            # 'epoch' updates the scheduler on epoch end whereas 'step'
+                            # updates it after a optimizer update.
+                            "interval": "epoch",
+                            # How many epochs/steps should pass between calls to
+                            # `scheduler.step()`. 1 corresponds to updating the learning
+                            # rate after every epoch/step.
+                            "frequency": 1,
+                            # Metric to to monitor for schedulers like `ReduceLROnPlateau`
+                            "monitor": "valid_dataset_iou",
+                            # If set to `True`, will enforce that the value specified 'monitor'
+                            # is available when the scheduler is updated, thus stopping
+                            # training if not found. If set to `False`, it will only produce a warning
+                            "strict": True,
+                            # If using the `LearningRateMonitor` callback to monitor the
+                            # learning rate progress, this keyword can be used to specify
+                            # a custom logged name
+                            "name": None,
+                        }
+        return [optimizer], [lr_scheduler_config]
+
+    def configure_callbacks(self):
+        #early_stop = EarlyStopping(monitor="val_acc", mode="max")
+        early_stop_callback = EarlyStopping(monitor="valid_dataset_iou", min_delta=0.00, patience=self.hparams.early_stopping_patience , verbose=False, mode="max")
+        lr_monitor = LearningRateMonitor(logging_interval = "epoch")
+        return [lr_monitor, early_stop_callback] 
 
 
 

@@ -65,9 +65,14 @@ model:
   in_channels: 3
   out_classes: 1
   lr: 0.0001
+  lr_scheduler_hparams:
+    mode: max
+    patience: 15
+    verbose: true
   test_print_batch_id: 0
   test_print_num: 5
   encoder_weights: imagenet
+  early_stopping_patience: 25
 data:
   encoder: se_resnext50_32x4d
   encoder_weight: imagenet

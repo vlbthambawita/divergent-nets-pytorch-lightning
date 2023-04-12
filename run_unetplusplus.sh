@@ -1,6 +1,6 @@
 # !/bin/bash
 
-FNOS="RALLF000EPOCH100"
+FNOS="R000FALL_EarlySTOP"
 model="UnetPlusPlus"
 devices="[1]"
 
